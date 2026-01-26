@@ -40,6 +40,9 @@ app = Client(
     bot_token=BOT_TOKEN
 )
 
+# Хранение владельца Польши для каждой группы {chat_id: owner_mention}
+poland_owners: dict[int, str] = {}
+
 
 @app.on_message(filters.command("start") & filters.private)
 async def start(client: Client, message: Message):
@@ -151,12 +154,39 @@ async def getpolland(client: Client, message: Message):
         
         if members:
             winner = random.choice(members)
+            poland_owners[message.chat.id] = winner  # Сохраняем владельца
             await message.reply_text(f"Польша 🇵🇱 теперь принадлежит: {winner}")
         else:
             await message.reply_text("Некому владеть Польшей 🇵🇱")
     except Exception as e:
         logger.error(f"Ошибка в getpolland: {e}")
         await message.reply_text("Не удалось определить владельца Польши 🇵🇱")
+
+
+@app.on_message(filters.command("mypolland") & filters.group)
+async def mypolland(client: Client, message: Message):
+    """Пасхалка — забрать Польшу себе"""
+    user = message.from_user
+    if user.username:
+        owner = f"@{user.username}"
+    else:
+        name = user.first_name
+        if user.last_name:
+            name += f" {user.last_name}"
+        owner = f"[{name}](tg://user?id={user.id})"
+    
+    poland_owners[message.chat.id] = owner  # Сохраняем владельца
+    await message.reply_text(f"Польша 🇵🇱 теперь принадлежит: {owner}")
+
+
+@app.on_message(filters.command("whosepolland") & filters.group)
+async def whosepolland(client: Client, message: Message):
+    """Пасхалка — кто владеет Польшей"""
+    owner = poland_owners.get(message.chat.id)
+    if owner:
+        await message.reply_text(f"В данный момент Польша 🇵🇱 принадлежит: {owner}")
+    else:
+        await message.reply_text("Польша 🇵🇱 пока никому не принадлежит! Используй /getpolland или /mypolland")
 
 
 @app.on_message(filters.command("random") & filters.group)
