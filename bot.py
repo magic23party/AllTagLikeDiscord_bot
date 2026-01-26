@@ -114,7 +114,9 @@ async def info_command(client: Client, message: Message):
         "**Команды:**\n"
         "• /all — упомянуть всех (только в начале сообщения)\n"
         "• @all — упомянуть всех (в любом месте)\n"
-        "Бот не упоминает того, кто вызвал команду.\n\n"
+        "• /random — тегнуть случайного участника\n"
+        "• /randomlist @a @b @c — выбрать случайного из списка\n\n"
+        "Бот не упоминает того, кто вызвал команду /all.\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n\n"
         "🇬🇧 **ENGLISH**\n\n"
         "This bot allows you to mention all group members with one command.\n\n"
@@ -125,7 +127,9 @@ async def info_command(client: Client, message: Message):
         "**Commands:**\n"
         "• /all — mention everyone (only at the start of message)\n"
         "• @all — mention everyone (anywhere in message)\n"
-        "The bot does not mention the person who called the command."
+        "• /random — tag a random member\n"
+        "• /randomlist @a @b @c — pick random from list\n\n"
+        "The bot does not mention the person who called /all."
     )
 
 
@@ -153,6 +157,59 @@ async def getpolland(client: Client, message: Message):
     except Exception as e:
         logger.error(f"Ошибка в getpolland: {e}")
         await message.reply_text("Не удалось определить владельца Польши 🇵🇱")
+
+
+@app.on_message(filters.command("random") & filters.group)
+async def random_member(client: Client, message: Message):
+    """Тегает случайного участника группы"""
+    try:
+        members = []
+        async for member in client.get_chat_members(message.chat.id):
+            user = member.user
+            if not user.is_bot:
+                if user.username:
+                    members.append(f"@{user.username}")
+                else:
+                    name = user.first_name
+                    if user.last_name:
+                        name += f" {user.last_name}"
+                    members.append(f"[{name}](tg://user?id={user.id})")
+        
+        if members:
+            winner = random.choice(members)
+            await message.reply_text(f"🎲 Случайный выбор: {winner}")
+        else:
+            await message.reply_text("🤷 Не нашёл участников!")
+    except Exception as e:
+        logger.error(f"Ошибка в random: {e}")
+        await message.reply_text("❌ Не удалось выбрать случайного участника.")
+
+
+@app.on_message(filters.command("randomlist") & filters.group)
+async def random_from_list(client: Client, message: Message):
+    """Тегает случайного из списка пользователя"""
+    # Получаем текст после команды
+    if len(message.command) < 2:
+        await message.reply_text(
+            "📝 Использование: /randomlist @user1 @user2 @user3\n"
+            "Бот выберет случайного из списка."
+        )
+        return
+    
+    # Собираем все юзернеймы из сообщения
+    text = message.text.split(maxsplit=1)[1]  # Всё после /randomlist
+    usernames = [word for word in text.split() if word.startswith("@") or not word.startswith("/")]
+    
+    if not usernames:
+        await message.reply_text("❌ Не нашёл юзернеймов в списке!")
+        return
+    
+    winner = random.choice(usernames)
+    # Добавляем @ если нет
+    if not winner.startswith("@"):
+        winner = f"@{winner}"
+    
+    await message.reply_text(f"🎲 Случайный выбор: {winner}")
 
 
 @app.on_message(filters.command("all") & filters.group)
