@@ -8,6 +8,7 @@ Telegram бот для тега всех участников группы (Pyro
 """
 
 import os
+import random
 import logging
 from pyrogram import Client, filters
 from pyrogram.types import Message
@@ -111,9 +112,8 @@ async def info_command(client: Client, message: Message):
         "2. Назначьте бота администратором\n"
         "3. Напишите /all или @all в любом сообщении\n\n"
         "**Команды:**\n"
-        "• /all — упомянуть всех (в начале сообщения)\n"
-        "• @all или @все — упомянуть всех (в любом месте)\n"
-        "• /info — эта справка\n\n"
+        "• /all — упомянуть всех (только в начале сообщения)\n"
+        "• @all — упомянуть всех (в любом месте)\n"
         "Бот не упоминает того, кто вызвал команду.\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━\n\n"
         "🇬🇧 **ENGLISH**\n\n"
@@ -123,11 +123,36 @@ async def info_command(client: Client, message: Message):
         "2. Make the bot an administrator\n"
         "3. Type /all or @all in any message\n\n"
         "**Commands:**\n"
-        "• /all — mention everyone (at the start of message)\n"
+        "• /all — mention everyone (only at the start of message)\n"
         "• @all — mention everyone (anywhere in message)\n"
-        "• /info — this help\n\n"
         "The bot does not mention the person who called the command."
     )
+
+
+@app.on_message(filters.command("getpolland") & filters.group)
+async def getpolland(client: Client, message: Message):
+    """Пасхалка — случайный владелец Польши"""
+    try:
+        members = []
+        async for member in client.get_chat_members(message.chat.id):
+            user = member.user
+            if not user.is_bot:
+                if user.username:
+                    members.append(f"@{user.username}")
+                else:
+                    name = user.first_name
+                    if user.last_name:
+                        name += f" {user.last_name}"
+                    members.append(f"[{name}](tg://user?id={user.id})")
+        
+        if members:
+            winner = random.choice(members)
+            await message.reply_text(f"Польша 🇵🇱 теперь принадлежит: {winner}")
+        else:
+            await message.reply_text("Некому владеть Польшей 🇵🇱")
+    except Exception as e:
+        logger.error(f"Ошибка в getpolland: {e}")
+        await message.reply_text("Не удалось определить владельца Польши 🇵🇱")
 
 
 @app.on_message(filters.command("all") & filters.group)
