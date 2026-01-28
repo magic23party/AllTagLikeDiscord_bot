@@ -55,6 +55,20 @@ async def start(client: Client, message: Message):
     )
 
 
+@app.on_message(filters.new_chat_members)
+async def on_bot_added(client: Client, message: Message):
+    """Приветствие при добавлении бота в группу"""
+    bot = await client.get_me()
+    for member in message.new_chat_members:
+        if member.id == bot.id:
+            await message.reply_text(
+                "👋 Привет! Спасибо, что добавили меня!\n\n"
+                "Используйте /all или @all чтобы упомянуть всех участников.\n"
+                "/info — справка по командам"
+            )
+            break
+
+
 async def tag_all_members(client: Client, message: Message):
     """Упоминание всех участников группы"""
     # Проверяем, что это группа
